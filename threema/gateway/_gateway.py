@@ -108,7 +108,7 @@ class Connection(AioRunMixin):
     def __init__(
             self, identity, secret,
             key=None, key_file=None,
-            fingerprint=None, verify_fingerprint=False, blocking=False
+            fingerprint=None, verify_fingerprint=False, blocking=False,
     ):
         super().__init__(blocking=blocking)
         if fingerprint is None and verify_fingerprint:
@@ -123,16 +123,26 @@ class Connection(AioRunMixin):
         self.key_file = key_file
 
     def __enter__(self):
+        if not self.blocking:
+            raise RuntimeError("Use `async with` in async mode")
         return self
 
     def __exit__(self, *_):
         self.close()
 
-    def close(self):
+    async def __aenter__(self):
+        if self.blocking:
+            raise RuntimeError("Use `with` in blocking mode")
+        return self
+
+    async def __aexit__(self, *_):
+        await self.close()
+
+    async def close(self):
         """
         Close the underlying :class:`aiohttp.ClientSession`.
         """
-        self._session.close()
+        await self._session.close()
 
     @property
     def key(self):
