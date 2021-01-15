@@ -235,7 +235,8 @@ async def send_simple(ctx, **arguments):
     text = click.get_text_stream('stdin').read().strip()
 
     # Create connection
-    async with Connection(arguments['from'], arguments['secret'], **ctx.obj) as connection:
+    connection = Connection(arguments['from'], arguments['secret'], **ctx.obj)
+    async with connection:
         # Create message
         message = simple.TextMessage(
             connection=connection,
@@ -486,7 +487,8 @@ Prints a set of capabilities in alphabetical order on success.
 @util.aio_run_decorator()
 async def capabilities(ctx, **arguments):
     # Create connection
-    async with Connection(arguments['from'], arguments['secret'], **ctx.obj) as connection:
+    connection = Connection(arguments['from'], arguments['secret'], **ctx.obj)
+    async with connection:
         # Lookup and format returned capabilities
         coroutine = connection.get_reception_capabilities(arguments['id'])
         capabilities_ = await coroutine
@@ -504,7 +506,8 @@ FROM is the API identity and SECRET is the API secret.
 @util.aio_run_decorator()
 async def credits(ctx, **arguments):
     # Create connection
-    async with Connection(arguments['from'], arguments['secret'], **ctx.obj) as connection:
+    connection = Connection(arguments['from'], arguments['secret'], **ctx.obj)
+    async with connection:
         # Get and print credits
         click.echo(await connection.get_credits())
 
