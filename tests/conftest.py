@@ -361,23 +361,23 @@ def api_server_port():
 
 @pytest.fixture(scope='module')
 def api_server(request, event_loop, api_server_port, server):
-    async def create_handler():
+    async def start_server():
         port = api_server_port
         app = web.Application(client_max_size=100 * (2**20))
         app.router.add_routes(server.routes)
-        handler = app.make_handler()
-
-        # Set up server
-        server_ = await event_loop.create_server(
-            handler, host=pytest.msgapi.ip, port=port)
-        return app, handler, server_
-    app, handler, server_ = event_loop.run_until_complete(create_handler())
+        runner = web.AppRunner(app)
+        await runner.setup()
+        site = web.TCPSite(runner, host=pytest.msgapi.ip, port=port, shutdown_timeout=1.0)
+        await site.start()
+        return app, runner, site
+    app, runner, site = event_loop.run_until_complete(start_server())
 
     def fin():
-        event_loop.run_until_complete(handler.shutdown(1.0))
-        server_.close()
-        event_loop.run_until_complete(server_.wait_closed())
-        event_loop.run_until_complete(app.cleanup())
+        async def stop_server():
+            await site.stop()
+            await runner.cleanup()
+            await app.cleanup()
+        event_loop.run_until_complete(stop_server())
 
     request.addfinalizer(fin)
 
